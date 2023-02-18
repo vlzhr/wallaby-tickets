@@ -12,31 +12,45 @@ contract WallabyTickets is ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private currentId;
 
-    bool public saleIsActive = false;
-    uint256 public totalTickets = 100;
-    uint256 public availableTickets = 100;
+    bool[] public events = [false];  // list of active status
+    address[] public eventManagers = [msg.sender];
+    uint256[] public totalTickets = [100];
+    uint256[] public availableTickets = [100];
     uint256 public mintPrice = 0;
 
-    mapping(address => uint256[]) public holderTokenIDs;
-    mapping(address => bool) public checkIns;
+    mapping(uint256 => mapping(address => bool)) public usages;
+    mapping(uint256 => mapping(address => uint256[])) holders;
 
     constructor() ERC721("Wallaby Ticket", "TICK") {
         currentId.increment();
     }
 
-    function buyTicket() public payable {
-        require(availableTickets > 0, "Not enough tickets");
+    function doEvent() public returns(uint256) {
+        events.push(true);
+        eventManagers.push(msg.sender);
+        totalTickets.push(100);
+        availableTickets.push(100);
+        return events.length;
+    }
+
+    function finishEvent(uint256 eventId) public {
+        require(eventManagers[eventId] == msg.sender, "Can be called only by manager");
+        events[eventId] = false;
+    }
+
+    function buyTicket(uint256 eventId) public payable {
+        require(availableTickets[eventId] > 0, "Not enough tickets");
         require(msg.value >= mintPrice, "Not enough ETH!");
-        require(saleIsActive, "Tickets are not on sale!");
+        require(events[eventId], "Tickets are not on sale!");
 
         string memory json = Base64.encode(
             bytes(
                 string(
                     abi.encodePacked(
-                        '{ "name": "NFTix #',
+                        '{ "name": "Wallaby Tickets #',
                         Strings.toString(currentId.current()),
-                        '", "description": "A NFT-powered ticketing system", ',
-                        '"traits": [{ "trait_type": "Checked In", "value": "false" }, { "trait_type": "Purchased", "value": "true" }], ',
+                        '", "description": "Powered by Wallaby Team", ',
+                        '"traits": [{ "trait_type": "Used", "value": "false" }, { "trait_type": "Purchased", "value": "true" }], ',
                         '"image": "https://gateway.pinata.cloud/ipfs/QmV2tMPTdXbsg2ezbYPMA2nR7UHEDEVhZLKqPDmXkE2qtD" }'
                     )
                 )
@@ -50,23 +64,23 @@ contract WallabyTickets is ERC721URIStorage, Ownable {
         _safeMint(msg.sender, currentId.current());
         _setTokenURI(currentId.current(), tokenURI);
  
-        holderTokenIDs[msg.sender].push(currentId.current());
+        holders[eventId][msg.sender].push(currentId.current());
         currentId.increment();
-        availableTickets = availableTickets - 1;
+        availableTickets[eventId] = availableTickets[eventId] - 1;
     }
 
-    function useTicket(address addy) public {
-        checkIns[addy] = true;
-        uint256 tokenId = holderTokenIDs[addy][0];
+    function useTicket(address addy, uint256 eventId) public {
+        usages[eventId][addy] = true;
+        uint256 tokenId = holders[eventId][addy][0];
 
         string memory json = Base64.encode(
             bytes(
                 string(
                     abi.encodePacked(
-                        '{ "name": "NFTix #',
+                        '{ "name": "Wallaby Tickets #',
                         Strings.toString(tokenId),
-                        '", "description": "A NFT-powered ticketing system", ',
-                        '"traits": [{ "trait_type": "Checked In", "value": "true" }, { "trait_type": "Purchased", "value": "true" }], ',
+                        '", "description": "Powered by Wallaby Team", ',
+                        '"traits": [{ "trait_type": "Used", "value": "true" }, { "trait_type": "Purchased", "value": "true" }], ',
                         '"image": "https://gateway.pinata.cloud/ipfs/QmV2tMPTdXbsg2ezbYPMA2nR7UHEDEVhZLKqPDmXkE2qtD" }'
                     )
                 )
@@ -79,23 +93,15 @@ contract WallabyTickets is ERC721URIStorage, Ownable {
         _setTokenURI(tokenId, tokenURI);
     }
 
-    function availableTicketCount() public view returns (uint256) {
-        return availableTickets;
+    function availableTicketCount(uint256 eventId) public view returns (uint256) {
+        return availableTickets[eventId];
     }
 
-    function totalTicketCount() public view returns (uint256) {
-        return totalTickets;
+    function totalTicketCount(uint256 eventId) public view returns (uint256) {
+        return totalTickets[eventId];
     }
 
-    function openSale() public onlyOwner {
-        saleIsActive = true;
-    }
-
-    function closeSale() public onlyOwner {
-        saleIsActive = false;
-    }
-
-    function confirmOwnership(address addy) public view returns (bool) {
-        return holderTokenIDs[addy].length > 0;
+    function confirmOwnership(address addy, uint256 eventId) public view returns (bool) {
+        return holders[eventId][addy].length > 0;
     }
 }
