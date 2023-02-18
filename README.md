@@ -1,1 +1,3 @@
-# NFT Even Tickets
+# NFT Event Tickets
+
+
