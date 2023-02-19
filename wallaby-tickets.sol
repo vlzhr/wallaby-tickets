@@ -16,6 +16,7 @@ contract WallabyTickets is ERC721URIStorage, Ownable {
     address[] public eventManagers = [msg.sender];
     uint256[] public totalTickets = [100];
     uint256[] public availableTickets = [100];
+    string[][] public eventDatas = [[""]];
     uint256 public mintPrice = 0;
 
     mapping(uint256 => mapping(address => bool)) public usages;
@@ -25,8 +26,9 @@ contract WallabyTickets is ERC721URIStorage, Ownable {
         currentId.increment();
     }
 
-    function doEvent() public returns(uint256) {
+    function doEvent(string[] memory eventData) public returns(uint256) {
         events.push(true);
+        eventDatas.push(eventData);
         eventManagers.push(msg.sender);
         totalTickets.push(100);
         availableTickets.push(100);
