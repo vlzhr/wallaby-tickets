@@ -94,6 +94,14 @@ contract WallabyTickets is ERC721URIStorage, Ownable {
         );
         _setTokenURI(tokenId, tokenURI);
     }
+  
+    function totalNumberOfTickets() public view returns (uint256) {
+        return eventDatas.length;
+    }
+
+    function requestTicketsData(uint256 eventId) public view returns (string[] memory) {
+        return eventDatas[eventId];
+    }
 
     function availableTicketCount(uint256 eventId) public view returns (uint256) {
         return availableTickets[eventId];
